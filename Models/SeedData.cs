@@ -1,22 +1,75 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using UniversityEnrollment.Areas.Identity.Data;
 
 namespace UniversityEnrollment.Models
 {
     public class SeedData
     {
+
+        public static async Task CreateUserRoles(IServiceProvider serviceProvider)
+        {
+            var RoleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var UserManager = serviceProvider.GetRequiredService<UserManager<UniversityEnrollmentUser>>();
+            IdentityResult roleResult;
+            //Add Admin Role
+            var roleCheck = await RoleManager.RoleExistsAsync("Admin");
+            if (!roleCheck) { roleResult = await RoleManager.CreateAsync(new IdentityRole("Admin")); }
+            UniversityEnrollmentUser user = await UserManager.FindByEmailAsync("admin@uni.com");
+            if (user == null)
+            {
+                var User = new UniversityEnrollmentUser();
+                User.Email = "admin@uni.com";
+                User.UserName = "admin@uni.com";
+                string userPWD = "Admin123";
+                IdentityResult chkUser = await UserManager.CreateAsync(User, userPWD);
+                //Add default User to Role Admin
+                if (chkUser.Succeeded) { var result1 = await UserManager.AddToRoleAsync(User, "Admin"); }
+            }
+            //Add Teacher Role
+            roleCheck = await RoleManager.RoleExistsAsync("Teacher");
+            if (!roleCheck) { roleResult = await RoleManager.CreateAsync(new IdentityRole("Teacher")); }
+            user = await UserManager.FindByEmailAsync("teacher@uni.com");
+            if (user == null)
+            {
+                var User = new UniversityEnrollmentUser();
+                User.Email = "teacher@uni.com";
+                User.UserName = "teacher@uni.com";
+                string userPWD = "Teacher123";
+                IdentityResult chkUser = await UserManager.CreateAsync(User, userPWD);
+                //Add default User to Role Teacher
+                if (chkUser.Succeeded) { var result1 = await UserManager.AddToRoleAsync(User, "Teacher"); }
+            }
+            //Add Student Role
+            roleCheck = await RoleManager.RoleExistsAsync("Student");
+            if (!roleCheck) { roleResult = await RoleManager.CreateAsync(new IdentityRole("Student")); }
+            user = await UserManager.FindByEmailAsync("student@uni.com");
+            if (user == null)
+            {
+                var User = new UniversityEnrollmentUser();
+                User.Email = "student@uni.com";
+                User.UserName = "student@uni.com";
+                string userPWD = "Student123";
+                IdentityResult chkUser = await UserManager.CreateAsync(User, userPWD);
+                //Add default User to Role Student
+                if (chkUser.Succeeded) { var result1 = await UserManager.AddToRoleAsync(User, "Student"); }
+            }
+        }
+         
         public static void Initialize(IServiceProvider serviceProvider)
         {
             using (var context = new UniversityEnrollmentContext(
   serviceProvider.GetRequiredService<DbContextOptions<UniversityEnrollmentContext>>()))
 
             {
-               
+                CreateUserRoles(serviceProvider).Wait();
+
                 if (context.Course.Any() || context.Student.Any() || context.Teacher.Any())
                 {
                     return;
                 }
 
-
+                
 
                 context.Student.AddRange(
                     new Student

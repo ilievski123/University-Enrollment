@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -21,9 +22,12 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Students
-        public async Task<IActionResult> Index(string fullName, string studentId)
+       [Authorize(Roles="Admin")]
+        public async Task<IActionResult> Index(string fullName, string studentId /*, int year */)
         {
             IQueryable<Student> studentsQuery = _context.Student.AsQueryable();
+           // IQueryable<int> yearQuery = _context.Student.OrderBy(m => m.enrollmentDate.Value.Year).Select(m => m.enrollmentDate.Value.Year).Distinct();
+       
             if (!string.IsNullOrEmpty(fullName))
             {
                 if (fullName.Contains(" "))
@@ -41,16 +45,47 @@ namespace UniversityEnrollment.Controllers
             {
                 studentsQuery = studentsQuery.Where(x => x.studentId.Contains(studentId));
             }
+          /*  if(year != null)
+            {
+                studentsQuery = studentsQuery.Where(x => x.enrollmentDate.Value.Year.Equals(year));
+
+            } */
             var StudentFilter = new FilterStudents
             {
-                students = await studentsQuery.ToListAsync()
+                students = await studentsQuery.ToListAsync(),
+               // yearsList = new SelectList(await yearQuery.ToListAsync())
             };
+
 
             return View(StudentFilter);
         }
 
         // GET: Students/Details/5
+        [Authorize]
         public async Task<IActionResult> Details(long? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var student = await _context.Student
+                .FirstOrDefaultAsync(m => m.Id == id);
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            EditPictureStudent viewmodel = new EditPictureStudent
+            {
+                student = student,
+                profilePictureName = student.profilePicture
+            };
+
+            return View(viewmodel);
+        } 
+        // GET: Students/Details/5
+       /* public async Task<IActionResult> Details(long? id)
         {
             if (id == null)
             {
@@ -66,9 +101,10 @@ namespace UniversityEnrollment.Controllers
 
 
             return View(student);
-        }
+        } */
 
         // GET: Students/Create
+         [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             ViewData["Courses"] = new SelectList(_context.Set<Course>(), "courseId", "title");
@@ -79,6 +115,7 @@ namespace UniversityEnrollment.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Id,studentId,firstName,lastName,enrollmentDate,acquiredCredits,currentSemester,educationLevel,Courses")] Student student)
         {
@@ -92,6 +129,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Students/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(long? id)
         {
             if (id == null)
@@ -108,7 +146,7 @@ namespace UniversityEnrollment.Controllers
             var courses = _context.Course.AsEnumerable();
             courses = courses.OrderBy(s => s.title);
 
-            EnrollCourses viewmodel = new EnrollCourses
+            CoursesAtStudentEdit viewmodel = new CoursesAtStudentEdit
             {
                 student = student,
                 coursesEnrolledList = new MultiSelectList(courses, "courseId", "title"),
@@ -124,7 +162,8 @@ namespace UniversityEnrollment.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(long id, EnrollCourses viewmodel)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(long id, CoursesAtStudentEdit viewmodel)
         {
             if (id != viewmodel.student.Id)
             {
@@ -179,6 +218,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Students/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(long? id)
         {
             if (id == null)
@@ -198,6 +238,7 @@ namespace UniversityEnrollment.Controllers
 
         // POST: Students/Delete/5
         [HttpPost, ActionName("Delete")]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(long id)
         {
@@ -213,7 +254,8 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Students/StudentsEnrolled/5
-        public async Task<IActionResult> StudentsEnrolled(int? id, string? fullName, string? studentId)
+        [Authorize(Roles = "Admin,Teacher")]
+        public async Task<IActionResult> StudentsEnrolled(int? id, string? fullName, string? studentId, DateTime? year)
         {
             if (id == null)
             {
@@ -224,6 +266,8 @@ namespace UniversityEnrollment.Controllers
                 .FirstOrDefaultAsync(m => m.courseId == id);
             ViewBag.Message = course.title;
             IQueryable<Student> studentsQuery = _context.Enrollment.Where(x => x.courseId == id).Select(x => x.student);
+            IQueryable<DateTime?> yearQuery = _context.Student.OrderBy(m => m.enrollmentDate).Select(m => m.enrollmentDate).Distinct();
+           // string yearsList = DateTime.Parse(DateTime.Now.ToString()).Year.ToString();
             await _context.SaveChangesAsync();
             if (course == null)
             {
@@ -251,10 +295,125 @@ namespace UniversityEnrollment.Controllers
             var studentFilter = new FilterStudents
             {
                 students = await studentsQuery.ToListAsync(),
+                yearsList = new SelectList(await yearQuery.ToListAsync())
             };
 
             return View(studentFilter);
         }
-        // GET: Students/EditPicture/5
+
+       /* [Authorize(Roles="Admin,Teacher")]
+        public async Task<IActionResult> Filtriraj(int year)
+        {
+            IQueryable<Student> studentsQuery = _context.Student.AsQueryable();
+            IQueryable<int> yearQuery = _context.Student.OrderBy(m => m.enrollmentDate.Value.Year).Select(m => m.enrollmentDate.Value.Year).Distinct();
+
+            if (year != null)
+            {
+                studentsQuery = studentsQuery.Where(x => x.enrollmentDate.Value.Year.Equals(year));
+
+            }
+            var StudentFilter = new FilterStudents
+            {
+                students = await studentsQuery.ToListAsync(),
+                yearsList = new SelectList(await yearQuery.ToListAsync())
+            };
+
+
+            return View(StudentFilter);
+        } */
+            // GET: Students/EditPicture/5
+            [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditPicture(long? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var student = _context.Student.Where(x => x.Id == id).Include(x => x.Courses).First();
+            if (student == null)
+            {
+                return NotFound();
+            }
+
+            var courses = _context.Course.AsEnumerable();
+            courses = courses.OrderBy(s => s.title);
+
+            EditPictureStudent viewmodel = new EditPictureStudent
+            {
+                student = student,
+                profilePictureName = student.profilePicture
+            };
+
+            return View(viewmodel);
+        }
+
+        // POST: Students/EditPicture/5
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditPicture(long id, EditPictureStudent viewmodel)
+        {
+            if (id != viewmodel.student.Id)
+            {
+                return NotFound();
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    if (viewmodel.profilePictureFile != null)
+                    {
+                        string uniqueFileName = UploadedFile(viewmodel);
+                        viewmodel.student.profilePicture = uniqueFileName;
+                    }
+                    else
+                    {
+                        viewmodel.student.profilePicture = viewmodel.profilePictureName;
+                    }
+
+                    _context.Update(viewmodel.student);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!StudentExists(viewmodel.student.Id))
+                    {
+                        return NotFound();
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+                return RedirectToAction("Details", new { id = viewmodel.student.Id });
+            }
+            return View(viewmodel);
+        }
+        private string UploadedFile(EditPictureStudent viewmodel)
+        {
+            string uniqueFileName = null;
+
+            if (viewmodel.profilePictureFile != null)
+            {
+                string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/profilePictures");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+                uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(viewmodel.profilePictureFile.FileName);
+                string fileNameWithPath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
+                {
+                    viewmodel.profilePictureFile.CopyTo(stream);
+                }
+            }
+            return uniqueFileName;
+        }
+    
     }
 }

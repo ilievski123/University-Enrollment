@@ -36,6 +36,7 @@ namespace UniversityEnrollment.Models
 
         public ICollection<Enrollment>? Courses { get; set; }
 
+        public string? profilePicture { get; set; }
         public string fullName
         {
             get

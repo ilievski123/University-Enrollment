@@ -30,6 +30,7 @@ namespace UniversityEnrollment.Models
         [DataType(DataType.Date)]
         public DateTime? hireDate { get; set; }
 
+        public string? profilePicture { get; set; }
         public string fullName
         {
             get

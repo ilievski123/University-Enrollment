@@ -6,9 +6,12 @@
 
 <h1>Teachers</h1>
 
+@if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+{
 <p>
-    <a asp-action="Create">Create New</a>
+<a asp-action="Create">Create New</a>
 </p>
+}
 <form asp-controller="Teachers" asp-action="Index" method="get">
     <p>
         Name: <input type="text" asp-for="fullName" />
@@ -78,9 +81,11 @@
                 </a>
             </td>
             <td>
-                <a asp-action="Edit" asp-route-id="@item.teacherId">Edit</a> |
+                @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                    { <a asp-action="Edit" asp-route-id="@item.teacherId">Edit</a> } |
                 <a asp-action="Details" asp-route-id="@item.teacherId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.teacherId">Delete</a>
+                @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+                { <a asp-action="Delete" asp-route-id="@item.teacherId">Delete</a> }
             </td>
         </tr>
 }

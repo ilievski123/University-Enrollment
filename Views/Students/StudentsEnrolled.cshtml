@@ -7,9 +7,15 @@
 <h1>Students enrolled to course "@ViewBag.Message"</h1>
 
 <form asp-controller="Students" asp-action="StudentsEnrolled" method="get">
-    <p>
+  <!--  <p>
         First or last name: <input type="text" asp-for="fullName" />
         Student ID: <input type="text" asp-for="studentId" />
+        <input type="submit" value="Filter" />
+    </p> -->
+     <p>
+        Year: <select asp-for="year" asp-items="Model.yearsList">
+            <option>Select year</option>
+        </select>
         <input type="submit" value="Filter" />
     </p>
 </form>

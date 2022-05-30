@@ -9,8 +9,8 @@ namespace UniversityEnrollment.Models
 
         [Display(Name = "Course")]
         public int courseId { get; set; }
-        [Display(Name = "Course")]
-        public Course? course { get; set; }
+       [Display(Name = "Course")]
+       public Course? course { get; set; }
 
         [Display(Name = "Student")]
         public long studentId { get; set; }

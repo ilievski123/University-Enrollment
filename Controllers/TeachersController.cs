@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Teachers
+        [Authorize(Roles ="Admin")]
         public async Task<IActionResult> Index(string fullName, string academicrank, string degree)
         {
 
@@ -59,6 +61,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Teachers/Details/5
+        [Authorize]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -78,6 +81,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Teachers/Create
+        [Authorize(Roles = "Admin")]
         public IActionResult Create()
         {
             return View();
@@ -87,6 +91,7 @@ namespace UniversityEnrollment.Controllers
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("teacherId,firstName,lastName,degree,academicRank,officeNumber,hireDate")] Teacher teacher)
         {
@@ -100,6 +105,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Teachers/Edit/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -118,6 +124,7 @@ namespace UniversityEnrollment.Controllers
         // POST: Teachers/Edit/5
         // To protect from overposting attacks, enable the specific properties you want to bind to.
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [Authorize(Roles = "Admin")]
         private bool TeacherExists(int id)
         {
             return _context.Teacher.Any(e => e.teacherId == id);
@@ -155,6 +162,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // GET: Teachers/Delete/5
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -173,6 +181,7 @@ namespace UniversityEnrollment.Controllers
         }
 
         // POST: Teachers/Delete/5
+        [Authorize(Roles = "Admin")]
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -183,6 +192,97 @@ namespace UniversityEnrollment.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+         // GET: Teachers/EditPicture/5
+         [Authorize(Roles = "Admin")]
+         public async Task<IActionResult> EditPicture(long? id)
+         {
+             if (id == null)
+             {
+                 return NotFound();
+             }
 
+             var teacher = _context.Teacher.Where(x => x.teacherId == id).First();
+             if (teacher == null)
+             {
+                 return NotFound();
+             }
+
+             EditPictureTeacher viewmodel = new EditPictureTeacher
+             {
+                 teacher = teacher,
+                 profilePictureName = teacher.profilePicture
+             };
+
+             return View(viewmodel);
+         }
+
+         // POST: Teachers/EditPicture/5
+         // To protect from overposting attacks, enable the specific properties you want to bind to.
+         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+         [HttpPost]
+         [ValidateAntiForgeryToken]
+         [Authorize(Roles = "Admin")]
+         public async Task<IActionResult> EditPicture(long id, EditPictureTeacher viewmodel)
+         {
+             if (id != viewmodel.teacher.teacherId)
+             {
+                 return NotFound();
+             }
+
+             if (ModelState.IsValid)
+             {
+                 try
+                 {
+                     if (viewmodel.profilePictureFile != null)
+                     {
+                         string uniqueFileName = UploadedFile(viewmodel);
+                         viewmodel.teacher.profilePicture = uniqueFileName;
+                     }
+                     else
+                     {
+                         viewmodel.teacher.profilePicture = viewmodel.profilePictureName;
+                     }
+
+                     _context.Update(viewmodel.teacher);
+                     await _context.SaveChangesAsync();
+                 }
+                 catch (DbUpdateConcurrencyException)
+                 {
+                     if (!TeacherExists(viewmodel.teacher.teacherId))
+                     {
+                         return NotFound();
+                     }
+                     else
+                     {
+                         throw;
+                     }
+                 }
+                 return RedirectToAction("Details", new { id = viewmodel.teacher.teacherId });
+             }
+             return View(viewmodel);
+         }
+         private string UploadedFile(EditPictureTeacher viewmodel)
+         {
+             string uniqueFileName = null;
+
+             if (viewmodel.profilePictureFile != null)
+             {
+                 string uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/profilePictures");
+                 if (!Directory.Exists(uploadsFolder))
+                 {
+                     Directory.CreateDirectory(uploadsFolder);
+                 }
+                 uniqueFileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(viewmodel.profilePictureFile.FileName);
+                 string fileNameWithPath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                 using (var stream = new FileStream(fileNameWithPath, FileMode.Create))
+                 {
+                     viewmodel.profilePictureFile.CopyTo(stream);
+                 }
+             }
+             return uniqueFileName;
+         }
+      
     }
+
 }

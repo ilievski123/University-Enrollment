@@ -49,6 +49,11 @@
     </dl>
 </div>
 <div>
-    <a asp-action="Edit" asp-route-id="@Model?.teacherId">Edit</a> |
+    @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+    {
+        <a asp-action="EditPicture" asp-route-id="@Model?.teacherId">Edit picture</a>
+    }
+    @if (User.Identity.IsAuthenticated && User.IsInRole("Admin"))
+    { <a asp-action="Edit" asp-route-id="@Model.teacherId">Edit</a> } |
     <a asp-action="Index">Back to List</a>
 </div>

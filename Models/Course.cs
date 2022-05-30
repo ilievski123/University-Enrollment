@@ -37,7 +37,7 @@ namespace UniversityEnrollment.Models
         public Teacher? firstTeacher { get; set; }
 
         [Display(Name = "Second Teacher")]
-      
+
         public int? secondTeacherId { get; set; }
 
         [NotMapped]
